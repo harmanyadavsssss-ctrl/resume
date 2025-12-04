@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Soil Condition Analysis — Light Aqua Theme</title>
+  <meta name="description" content="Interactive soil condition analyzer for general, wheat and rice soils. Includes nutrient classification, climate checks and season-based crop suggestions." />
+  <style>
+    :root{
+      --bg:#f0fdfa;
+      --card:#ffffff;
+      --primary:#047876;
+      --primary-600:#0f766e;
+      --accent:#0e7490;
+      --muted:#6b7280;
+      --success:#16a34a;
+      --danger:#dc2626;
+      --glass: rgba(255,255,255,0.6);
+      --radius:10px;
+      --shadow: 0 6px 20px rgba(0,0,0,0.08);
+      --max-width:1100px;
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    /* Page layout */
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#e0f2f1);color:#102027}
+    header{background:linear-gradient(90deg,var(--primary),#06b6d4);color:#fff;padding:18px;text-align:center;font-size:20px;font-weight:700}
+
+    .topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;background:#cffafe;font-weight:600;font-size:14px}
+    .tabs{display:flex;gap:6px;justify-content:center;padding:10px}
+    .tabs button{background:transparent;border:none;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:700}
+    .tabs button.active{background:var(--primary);color:#fff;box-shadow:0 6px 14px rgba(3,105,112,0.12)}
+
+    .page {max-width:var(--max-width);margin:26px auto;padding:18px}
+    .container{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:18px}
+
+    /* homepage boxes */
+    .homepage{display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
+    .program-box{flex:1 1 260px;min-width:220px;padding:28px;border-radius:14px;color:#fff;text-align:center;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}
+    .program-box:hover{transform:translateY(-6px)}
+    .box-general{background:linear-gradient(135deg,#047876,#2dd4bf)}
+    .box-wheat{background:linear-gradient(135deg,#b45309,#f59e0b)}
+    .box-rice{background:linear-gradient(135deg,#374151,#6b7280)}
+
+    /* form/grid */
+    .input-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type="number"],input[type="date"],select{width:100%;padding:9px;border-radius:8px;border:1px solid #e6eef0;background:#fbfeff;font-size:14px;box-sizing:border-box}
+    .actions{margin-top:14px}
+    .analyze{width:100%;padding:11px;border-radius:8px;border:none;background:linear-gradient(90deg,var(--primary),#06b6d4);color:#fff;font-weight:800;cursor:pointer}
+
+    /* chemistry cards */
+    .chem-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:14px}
+    .chem{background:#e0f2f1;border-radius:10px;padding:12px;border:1px solid #99f6e4}
+    .chem h4{margin:0 0 6px 0;color:var(--primary);font-size:14px}
+    .chem .val{font-weight:800;font-size:16px;margin-bottom:8px}
+    .pill{display:inline-block;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700}
+    .low{background:#f0f9ff;color:#0e7490}
+    .ok{background:#ecfdf5;color:#065f46}
+    .high{background:#fff1f2;color:#be123c}
+
+    .output{display:none;margin-top:12px;padding:12px;background:#fff;border-radius:8px;border:1px solid #e6eef0}
+    .season-box{background:#cffafe;padding:10px;border-radius:8px;margin-top:12px}
+
+    /* small screens */
+    @media (max-width:820px){.input-grid{grid-template-columns:1fr}.topbar{font-size:13px}.tabs{overflow:auto;padding:8px}}
+  </style>
+</head>
+<body>
+  <header>SOIL CONDITION ANALYSIS</header>
+
+  <div class="topbar" aria-hidden="false">
+    <div id="clock">Time: --:--:--</div>
+    <div id="location">Location: unavailable</div>
+  </div>
+
+  <nav class="tabs" role="tablist" aria-label="Main Tabs">
+    <button data-tab="homepage" class="active" role="tab" aria-selected="true">Home</button>
+    <button data-tab="general" role="tab">General Soil</button>
+    <button data-tab="wheat" role="tab">Wheat Soil</button>
+    <button data-tab="rice" role="tab">Rice Soil</button>
+  </nav>
+
+  <main class="page">
+
+    <!-- HOME -->
+    <section id="homepage" class="container homepage" role="region" aria-label="Home">
+      <article class="program-box box-general" data-target="general" tabindex="0" aria-label="Open General Soil Analysis">
+        <h3>General Soil Analysis 🔬</h3>
+        <p>A comprehensive report for any land type — macro and micro nutrients + climate check.</p>
+      </article>
+
+      <article class="program-box box-wheat" data-target="wheat" tabindex="0" aria-label="Open Wheat Soil Analysis">
+        <h3>Wheat Soil Specific 🌾</h3>
+        <p>Recommendations and checks optimized for high-yield wheat cultivation.</p>
+      </article>
+
+      <article class="program-box box-rice" data-target="rice" tabindex="0" aria-label="Open Rice Soil Analysis">
+        <h3>Rice Soil Specific 🍚</h3>
+        <p>Checks for paddy fields — pH, nutrient mobility and waterlogged conditions.</p>
+      </article>
+    </section>
+
+    <!-- GENERAL -->
+    <section id="general" class="container" style="display:none;" role="region" aria-label="General Soil Analysis">
+      <h3>General Soil Analysis</h3>
+      <form id="generalForm" onsubmit="return false;">
+        <div class="input-grid">
+          <div><label for="gph">pH</label><input id="gph" type="number" step="0.1" min="0" max="14" value="6.8"></div>
+          <div><label for="gdate">Date</label><input id="gdate" type="date"></div>
+
+          <div><label for="gn">Nitrogen (mg/kg)</label><input id="gn" type="number" min="0" value="150"></div>
+          <div><label for="gp">Phosphorus (mg/kg)</label><input id="gp" type="number" min="0" value="15"></div>
+
+          <div><label for="gk">Potassium (mg/kg)</label><input id="gk" type="number" min="0" value="280"></div>
+          <div><label for="gs">Sulphur (mg/kg)</label><input id="gs" type="number" min="0" value="8"></div>
+
+          <div><label for="gca">Calcium (cmolc/kg)</label><input id="gca" type="number" step="0.1" min="0" value="5.0"></div>
+          <div><label for="gna">Sodium (cmolc/kg)</label><input id="gna" type="number" step="0.01" min="0" value="0.18"></div>
+
+          <div><label for="gtmp">Temperature (°C)</label><input id="gtmp" type="number" step="0.1" value="25.0"></div>
+          <div><label for="ghum">Humidity (%)</label><input id="ghum" type="number" step="0.1" value="60"></div>
+        </div>
+
+        <div class="actions">
+          <button class="analyze" id="analyzeGeneral">Analyze Soil Data</button>
+        </div>
+      </form>
+
+      <div id="gout" class="output" aria-live="polite"></div>
+      <div id="chemCards" class="chem-list" aria-live="polite"></div>
+      <div id="seasonCrop" class="season-box" aria-live="polite"></div>
+    </section>
+
+    <!-- WHEAT -->
+    <section id="wheat" class="container" style="display:none;" role="region" aria-label="Wheat Soil Analysis">
+      <h3>Wheat Soil Analysis</h3>
+      <form id="wheatForm" onsubmit="return false;">
+        <div class="input-grid">
+          <div><label for="wph">pH</label><input id="wph" type="number" step="0.1" value="6.5"></div>
+          <div><label for="wdate">Date</label><input id="wdate" type="date"></div>
+
+          <div><label for="wn">Nitrogen (mg/kg)</label><input id="wn" type="number" min="0" value="30"></div>
+          <div><label for="wp">Phosphorus (mg/kg)</label><input id="wp" type="number" min="0" value="15"></div>
+
+          <div><label for="wk">Potassium (mg/kg)</label><input id="wk" type="number" min="0" value="150"></div>
+          <div><label for="ws">Sulphur (mg/kg)</label><input id="ws" type="number" min="0"></div>
+
+          <div><label for="wca">Calcium (cmolc/kg)</label><input id="wca" type="number" step="0.1"></div>
+          <div><label for="wna">Sodium (cmolc/kg)</label><input id="wna" type="number" step="0.01"></div>
+
+          <div><label for="wtmp">Temperature (°C)</label><input id="wtmp" type="number" step="0.1" value="20.0"></div>
+          <div><label for="whum">Humidity (%)</label><input id="whum" type="number" step="0.1" value="65"></div>
+        </div>
+
+        <div class="actions"><button class="analyze" id="analyzeWheat">Analyze Wheat Soil</button></div>
+      </form>
+
+      <div id="wout" class="output" aria-live="polite"></div>
+    </section>
+
+    <!-- RICE -->
+    <section id="rice" class="container" style="display:none;" role="region" aria-label="Rice Soil Analysis">
+      <h3>Rice Soil Analysis</h3>
+      <form id="riceForm" onsubmit="return false;">
+        <div class="input-grid">
+          <div><label for="rph">pH</label><input id="rph" type="number" step="0.1" value="6.2"></div>
+          <div><label for="rdate">Date</label><input id="rdate" type="date"></div>
+
+          <div><label for="rn">Nitrogen (mg/kg)</label><input id="rn" type="number" min="0" value="100"></div>
+          <div><label for="rp">Phosphorus (mg/kg)</label><input id="rp" type="number" min="0" value="20"></div>
+
+          <div><label for="rk">Potassium (mg/kg)</label><input id="rk" type="number" min="0" value="180"></div>
+          <div><label for="rs">Sulphur (mg/kg)</label><input id="rs" type="number" min="0"></div>
+
+          <div><label for="rca">Calcium (cmolc/kg)</label><input id="rca" type="number" step="0.1"></div>
+          <div><label for="rna">Sodium (cmolc/kg)</label><input id="rna" type="number" step="0.01"></div>
+
+          <div><label for="rtmp">Temperature (°C)</label><input id="rtmp" type="number" step="0.1" value="28.0"></div>
+          <div><label for="rhum">Humidity (%)</label><input id="rhum" type="number" step="0.1" value="85"></div>
+        </div>
+
+        <div class="actions"><button class="analyze" id="analyzeRice">Analyze Rice Soil</button></div>
+      </form>
+
+      <div id="rout" class="output" aria-live="polite"></div>
+    </section>
+
+  </main>
+
+  <script>
+  // ------------------------- Utilities -------------------------
+  const qs = sel => document.querySelector(sel);
+  const qsa = sel => Array.from(document.querySelectorAll(sel));
+
+  // safe text node creation helper
+  function el(tag, text, attrs = {}){
+    const e = document.createElement(tag);
+    if(text !== undefined && text !== null) e.textContent = String(text);
+    Object.entries(attrs).forEach(([k,v])=> e.setAttribute(k,String(v)));
+    return e;
+  }
+
+  // Clock
+  function startClock(){
+    const clk = qs('#clock');
+    function tick(){
+      const now = new Date();
+      clk.textContent = 'Time: ' + now.toLocaleTimeString();
+    }
+    tick();
+    setInterval(tick,1000);
+  }
+
+  // Location (best-effort)
+  function initLocation(){
+    const loc = qs('#location');
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(pos => {
+        loc.textContent = `Lat: ${pos.coords.latitude.toFixed(2)}, Lon: ${pos.coords.longitude.toFixed(2)}`;
+      }, () => { loc.textContent = 'Location: permission denied or unavailable'; });
+    } else loc.textContent = 'Location: not supported';
+  }
+
+  // --- Season helper ---
+  function getSeasonCrop(month){
+    if(month>=6 && month<=9) return 'Kharif Season (Jun–Sep) → Best Crops: Rice, Maize, Cotton';
+    if(month>=10 || month<=2) return 'Rabi Season (Oct–Feb) → Best Crops: Wheat, Mustard, Barley';
+    return 'Zaid Season (Mar–May) → Best Crops: Watermelon, Cucumber, Pulses';
+  }
+
+  // --- Classifiers ---
+  const chemicalThresholds = {
+    pH: v => (v<5.5? ['Acidic','low','Add lime or dolomite to raise pH.']:(v<=7.5?['Optimal','ok','pH is ideal for most crops.']:['Alkaline','high','Add gypsum or sulfur to lower pH.'])),
+    Nitrogen: v => (v<80?['Low','low','Needs urea/compost (N-rich) application.']:(v<=250?['Optimal','ok','N level is sufficient.']:['High','high','Avoid N fertilizer; risk of runoff/lodging.'])),
+    Phosphorus: v => (v<10?['Low','low','Apply Single Superphosphate (SSP).']:(v<=25?['Optimal','ok','P level is sufficient.']:['High','high','High P may lock up zinc/iron.'])),
+    Potassium: v => (v<120?['Low','low','Apply Muriate of Potash (MOP).']:(v<=350?['Optimal','ok','K level is sufficient.']:['High','high','Excess K can interfere with Mg uptake.'])),
+    Sulphur: v => (v<10?['Low','low','Add gypsum or ammonium sulfate.']:(v<=30?['Optimal','ok','Sulphur level is sufficient.']:['High','high','High S is rarely a problem.'])),
+    Calcium: v => (v<2.0?['Low','low','Add calcitic or dolomitic lime.']:(v<=10.0?['Optimal','ok','Calcium level is sufficient.']:['High','high','Very high Ca may reduce P absorption.'])),
+    Sodium: v => (v<0.2?['Optimal','ok','Sodium level is normal.']:(v<=2.0?['Moderate','high','Monitor for salinity; use good drainage.']:['High','high','High salinity — use gypsum and flush the soil.'])),
+  };
+
+  function classifyChemical(name, raw){
+    if(raw===null||raw===undefined||raw==='') return {status:'No Data',cls:'',note:'No value provided.'};
+    const v = Number(raw);
+    if(Number.isNaN(v)) return {status:'Invalid',cls:'',note:'Not a number.'};
+    const fn = chemicalThresholds[name];
+    return fn ? (()=>{ const [s,c,n]=fn(v); return {status:s,cls:c,note:n}})() : {status:'Unknown',cls:'',note:''};
+  }
+
+  function classifyClimate(type, raw){
+    if(raw===null||raw===undefined||raw==='') return {status:'No Data',cls:'',note:'No value provided.'};
+    const v = Number(raw);
+    if(Number.isNaN(v)) return {status:'Invalid',cls:'',note:'Not a number.'};
+    if(type==='Temperature'){
+      if(v<15) return {status:'Too Cold',cls:'low',note:'May slow crop growth.'};
+      if(v<=30) return {status:'Optimal',cls:'ok',note:'Ideal temperature range for most field crops.'};
+      return {status:'Too Hot',cls:'high',note:'Heat stress — increase irrigation.'};
+    }
+    if(type==='Humidity'){
+      if(v<40) return {status:'Too Low',cls:'low',note:'Increased risk of drought/water stress.'};
+      if(v<=70) return {status:'Optimal',cls:'ok',note:'Good range for crop respiration.'};
+      return {status:'Too High',cls:'high',note:'Risk of fungal disease.'};
+    }
+    return {status:'Unknown',cls:'',note:''};
+  }
+
+  // Build a chemical card safely
+  function createChemCard(title, value, unit, isClimate=false){
+    const root = document.createElement('div'); root.className='chem';
+    const info = isClimate ? classifyClimate(title, value) : classifyChemical(title, value);
+    root.appendChild(el('h4', title));
+
+    const valStr = (value===null||value===undefined||value==='') ? '—' : String(value) + (unit?` ${unit}`:'');
+    root.appendChild(el('div', valStr, {class:'val'}));
+
+    const pill = document.createElement('div'); pill.className = 'pill ' + (info.cls||''); pill.textContent = info.status;
+    root.appendChild(pill);
+
+    const note = document.createElement('div'); note.className='note'; note.textContent = info.note;
+    root.appendChild(note);
+
+    return root;
+  }
+
+  // ------------------------- Analysis Logic -------------------------
+  function analyzeGeneral(){
+    const fields = ['gph','gdate','gn','gp','gk','gs','gca','gna','gtmp','ghum'];
+    const vals = {};
+    fields.forEach(id => { const eln = qs('#'+id); vals[id] = eln ? eln.value : '' });
+
+    // Season crop suggestion
+    const seasonBox = qs('#seasonCrop');
+    if(vals.gdate) seasonBox.textContent = 'Season-Based Crop Suggestion: ' + getSeasonCrop(new Date(vals.gdate).getMonth()+1);
+    else seasonBox.textContent = 'Select a date to get season-based crop suggestions.';
+
+    // chemical cards
+    const holder = qs('#chemCards'); holder.innerHTML = '';
+    holder.appendChild(createChemCard('pH', vals.gph, ''));
+    holder.appendChild(createChemCard('Nitrogen', vals.gn, 'mg/kg'));
+    holder.appendChild(createChemCard('Phosphorus', vals.gp, 'mg/kg'));
+    holder.appendChild(createChemCard('Potassium', vals.gk, 'mg/kg'));
+    holder.appendChild(createChemCard('Sulphur', vals.gs, 'mg/kg'));
+    holder.appendChild(createChemCard('Calcium', vals.gca, 'cmolc/kg'));
+    holder.appendChild(createChemCard('Sodium', vals.gna, 'cmolc/kg'));
+    holder.appendChild(createChemCard('Temperature', vals.gtmp, '°C', true));
+    holder.appendChild(createChemCard('Humidity', vals.ghum, '%', true));
+
+    // quick summary
+    const gout = qs('#gout'); gout.style.display = 'block';
+    const pHstatus = classifyChemical('pH', vals.gph).status;
+    const Nstatus = classifyChemical('Nitrogen', vals.gn).status;
+    const Pstatus = classifyChemical('Phosphorus', vals.gp).status;
+    const Kstatus = classifyChemical('Potassium', vals.gk).status;
+    const Tstatus = classifyClimate('Temperature', vals.gtmp).status;
+    const Hstatus = classifyClimate('Humidity', vals.ghum).status;
+
+    gout.innerHTML = `<strong>Quick Status Summary:</strong><br>
+      pH Status: ${pHstatus}<br>
+      Macronutrients: N: ${Nstatus}, P: ${Pstatus}, K: ${Kstatus}<br>
+      Climate: Temp: ${Tstatus}, Humidity: ${Hstatus}`;
+  }
+
+  function analyzeWheat(){
+    const ph = Number(qs('#wph').value);
+    const N = qs('#wn').value;
+    const P = qs('#wp').value;
+    const K = qs('#wk').value;
+    const Tmp = Number(qs('#wtmp').value);
+    const Hum = Number(qs('#whum').value);
+    const out = qs('#wout'); out.style.display = 'block';
+
+    if(Number.isNaN(ph) || Number.isNaN(Tmp) || Number.isNaN(Hum)){
+      out.textContent = 'Provide valid pH, Temperature, and Humidity values to analyze.'; return;
+    }
+
+    let report = '<strong>--- Wheat Soil & Climate Report ---</strong><br>';
+    report += `pH (${ph}): ${ph>=6 && ph<=7.5 ? 'Optimal for Wheat.' : 'Not optimal. Adjust pH to 6.0–7.5.'}<br>`;
+    report += `Nitrogen: ${classifyChemical('Nitrogen', N).status}.<br>`;
+    report += `Temperature (${Tmp}°C): ${Tmp>=15 && Tmp<=25 ? 'Ideal for wheat growth.' : Tmp<15 ? 'Too cold.' : 'Too hot.'}<br>`;
+    report += `Humidity (${Hum}%): ${Hum>=50 && Hum<=70 ? 'Ideal for wheat.' : Hum<50 ? 'Too low, increase irrigation.' : 'Too high, risk of fungal diseases.'}<br>`;
+
+    out.innerHTML = report;
+  }
+
+  function analyzeRice(){
+    const ph = Number(qs('#rph').value);
+    const N = qs('#rn').value;
+    const Tmp = Number(qs('#rtmp').value);
+    const Hum = Number(qs('#rhum').value);
+    const out = qs('#rout'); out.style.display = 'block';
+
+    if(Number.isNaN(ph) || Number.isNaN(Tmp) || Number.isNaN(Hum)){
+      out.textContent = 'Provide valid pH, Temperature, and Humidity values to analyze.'; return;
+    }
+
+    let report = '<strong>--- Rice Soil & Climate Report ---</strong><br>';
+    report += `pH (${ph}): ${ph>=5.5 && ph<=7.5 ? 'Acceptable for Rice.' : 'Not optimal. Adjust pH to 5.5–7.5.'}<br>`;
+    report += `Nitrogen: ${classifyChemical('Nitrogen', N).status}. (Critical in waterlogged conditions)<br>`;
+    report += `Temperature (${Tmp}°C): ${Tmp>=20 && Tmp<=35 ? 'Acceptable range for rice.' : Tmp<20 ? 'Too cold for tillering.' : 'Too hot, can affect flowering.'}<br>`;
+    report += `Humidity (${Hum}%): ${Hum>=70 ? 'High humidity is typical for rice.' : 'Humidity low, ensure standing water is maintained.'}<br>`;
+
+    out.innerHTML = report;
+  }
+
+  // ------------------------- UI wiring -------------------------
+  function showTab(tab){
+    // hide all
+    ['homepage','general','wheat','rice'].forEach(id => qs('#'+id).style.display = (id===tab? (id==='homepage'?'flex':'block') : 'none'));
+    // tab buttons
+    qsa('.tabs button').forEach(b=>{
+      const t = b.dataset.tab || b.getAttribute('data-tab');
+      if(t===tab){ b.classList.add('active'); b.setAttribute('aria-selected','true'); }
+      else { b.classList.remove('active'); b.setAttribute('aria-selected','false'); }
+    });
+    // focus first input of selected tab for accessibility
+    const firstInput = qs(`#${tab} input`);
+    if(firstInput) firstInput.focus();
+  }
+
+  function init(){
+    startClock(); initLocation();
+
+    // set default dates to today
+    const today = new Date().toISOString().split('T')[0];
+    ['gdate','wdate','rdate'].forEach(id=>{ const e=qs('#'+id); if(e) e.value = today });
+
+    // wire tabs
+    qsa('.tabs button').forEach(btn => btn.addEventListener('click', ()=> showTab(btn.dataset.tab)));
+
+    // make program boxes clickable
+    qsa('.program-box').forEach(box => {
+      box.addEventListener('click', ()=> showTab(box.dataset.target));
+      box.addEventListener('keypress', e=>{ if(e.key==='Enter' || e.key===' ') showTab(box.dataset.target) });
+    });
+
+    // wire analyze buttons
+    qs('#analyzeGeneral').addEventListener('click', analyzeGeneral);
+    qs('#analyzeWheat').addEventListener('click', analyzeWheat);
+    qs('#analyzeRice').addEventListener('click', analyzeRice);
+
+    // show home initially
+    showTab('homepage');
+  }
+
+  // run
+  document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
